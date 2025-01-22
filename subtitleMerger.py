@@ -5,17 +5,21 @@ from tkinter import filedialog, messagebox
 """
     合并字幕方法
 """
+
+
 def is_chinese(text):
     """判断文本是否包含中文"""
     return bool(re.search(r'[\u4e00-\u9fa5]', text))
 
 
 def is_english(text):
-    """判断文本是否包含中文"""
+    """判断文本是否包含英文"""
     return bool(re.search(r'[a-zA-Z]', text))
 
+def has_punctuation(text):
+    """判断文本末尾是否有标点符号"""
+    return bool(re.search(r'[.!?]$', text))
 
-#  lang_func：可以传递函数
 def merge_lines(input_file, processed_lines, lang_func):
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -34,8 +38,11 @@ def merge_lines(input_file, processed_lines, lang_func):
                 next_line = lines[i + 1].strip()
                 # 判断两行是否都包含中文
                 if lang_func(line) and lang_func(next_line):
-                    # 合并两行
-                    merged_line = line + next_line
+                    # 如果是英文且line末尾没有标点符号，则在合并时添加空格
+                    if lang_func == is_english and not has_punctuation(line):
+                        merged_line = line + " " + next_line
+                    else:
+                        merged_line = line + next_line
                     processed_lines.append(merged_line)
                     i += 2  # 跳过下一行
                 # 不包含中文直接追加
@@ -48,7 +55,6 @@ def merge_lines(input_file, processed_lines, lang_func):
                 i += 1
         # 如果为空就跳过
         else:
-            processed_lines.append(line)
             i += 1
 
 
@@ -59,11 +65,11 @@ def browse_input_file(entry_widget):
         entry_widget.insert(0, filename)
 
 
-def browse_output_folder():
-    folder = filedialog.askdirectory()
-    if folder:
+def browse_output_file():
+    file_path = filedialog.asksaveasfilename(defaultextension=".srt", filetypes=[("SRT Files", "*.srt")])
+    if file_path:
         output_entry.delete(0, tk.END)
-        output_entry.insert(0, folder)
+        output_entry.insert(0, file_path)
 
 
 def is_empty_line(line):
@@ -125,10 +131,11 @@ def merge_subtitles(processed_english_lines, processed_chinese_lines, output_fil
 
 
 def process_files():
-    # 从输入框中获取文件路径和输出目录
+    # 从输入框中获取文件路径和输出文件路径
     input_english_file = input_english_entry.get()
     input_chinese_file = input_chinese_entry.get()
-    output_folder = output_entry.get()
+    output_file = output_entry.get()
+
     processed_english_lines = []
     processed_chinese_lines = []
 
@@ -136,10 +143,11 @@ def process_files():
         messagebox.showerror("错误", "请输入文件路径")
         return
 
+    if not output_file:
+        messagebox.showerror("错误", "请选择输出文件")
+        return
+
     try:
-        # Get the output file name based on the input file name
-        # 设置输出名
-        output_file = f"{output_folder}/{input_chinese_file.split('/')[-1].replace('.srt', '_processed.srt')}"
         # 处理文件删除中文之间的换行符
         merge_lines(input_english_file, processed_english_lines, is_english)
         merge_lines(input_chinese_file, processed_chinese_lines, is_chinese)
@@ -183,14 +191,13 @@ def main():
     browse_input_chinese_button = tk.Button(root, text="浏览", command=lambda: browse_input_file(input_chinese_entry))
     browse_input_chinese_button.grid(row=1, column=2, padx=10, pady=10)
 
-    output_label = tk.Label(root, text="选择输出目录：")
+    output_label = tk.Label(root, text="选择输出文件位置：")
     output_label.grid(row=2, column=0, padx=10, pady=10, sticky='w')
 
     output_entry = tk.Entry(root, width=40)
     output_entry.grid(row=2, column=1, padx=10, pady=10)
-    output_entry.insert(0, "C:/Users/sepy2/Desktop")  # 设置默认输出路径
 
-    browse_output_button = tk.Button(root, text="浏览", command=browse_output_folder)
+    browse_output_button = tk.Button(root, text="浏览", command=browse_output_file)
     browse_output_button.grid(row=2, column=2, padx=10, pady=10)
 
     process_button = tk.Button(root, text="开始处理", command=process_files)
