@@ -180,15 +180,36 @@ def create_date_folder(base_folder):
     return date_folder
 
 
+def extract_title_from_filename(filename):
+    """从文件名中提取标题部分"""
+    # 使用正则表达式匹配方括号之间的内容
+    matches = re.findall(r'\](.*?)\[', filename)
+    if matches:
+        # 取最后一个匹配项作为标题
+        title = matches[-1]
+    else:
+        # 如果没有匹配项，使用原始文件名（去掉扩展名）
+        title = os.path.splitext(os.path.basename(filename))[0]
+    return title
+
+
+def create_date_folder(base_folder, filename):
+    """创建以文件名和当前日期时间戳命名的文件夹"""
+    title = extract_title_from_filename(filename)
+    current_timestamp = datetime.now().strftime("%Y%m%d%H")
+    folder_name = f"{current_timestamp}_{title}"
+    date_folder = os.path.join(base_folder, folder_name)
+    if not os.path.exists(date_folder):
+        os.makedirs(date_folder)
+    return date_folder
+
+
 def process_files():
     # 获取指定位置目录
     base_folder = filedialog.askdirectory(title="选择指定位置目录")
     if not base_folder:
         messagebox.showerror("错误", "请选择指定位置目录")
         return
-
-    # 创建以当前日期命名的文件夹
-    date_folder = create_date_folder(base_folder)
 
     # 从输入框中获取文件路径和输出文件路径
     input_english_file = input_english_entry.get()
@@ -204,6 +225,9 @@ def process_files():
         return
 
     try:
+        # 创建以文件名和当前日期时间戳命名的文件夹
+        date_folder = create_date_folder(base_folder, input_english_file)
+
         # 确保输入文件存在于日期文件夹中
         input_english_filename = os.path.basename(input_english_file)
         input_chinese_filename = os.path.basename(input_chinese_file)
